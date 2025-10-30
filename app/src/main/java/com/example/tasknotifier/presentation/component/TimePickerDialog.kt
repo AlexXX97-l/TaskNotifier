@@ -1,15 +1,19 @@
 package com.example.tasknotifier.presentation.component
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-//import androidx.compose.ui.window.Dialog
-//import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import java.time.LocalTime
 
+@SuppressLint("UnrememberedMutableState")
 @Composable
 fun TimePickerDialog(
     initialTime: LocalTime,
@@ -19,19 +23,31 @@ fun TimePickerDialog(
     var selectedHour by remember { mutableStateOf(initialTime.hour) }
     var selectedMinute by remember { mutableStateOf(initialTime.minute) }
 
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text("Выберите время") },
-        text = {
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = false
+        )
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.medium,
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.padding(16.dp)
+        ) {
             Column(
+                modifier = Modifier
+                    .widthIn(max = 300.dp)
+                    .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                Text("Выберите время", style = MaterialTheme.typography.titleMedium)
+
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(24.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Часы
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Часы", style = MaterialTheme.typography.labelMedium)
                         Spacer(modifier = Modifier.height(8.dp))
@@ -66,7 +82,6 @@ fun TimePickerDialog(
 
                     Text(":", style = MaterialTheme.typography.headlineMedium)
 
-                    // Минуты
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Минуты", style = MaterialTheme.typography.labelMedium)
                         Spacer(modifier = Modifier.height(8.dp))
@@ -105,57 +120,25 @@ fun TimePickerDialog(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.primary
                 )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val timeString = String.format("%02d:%02d", selectedHour, selectedMinute)
-                    onTimeSelected(timeString)
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Отмена")
+                    }
+
+                    Button(
+                        onClick = {
+                            val timeString = String.format("%02d:%02d", selectedHour, selectedMinute)
+                            onTimeSelected(timeString)
+                        }
+                    ) {
+                        Text("OK")
+                    }
                 }
-            ) {
-                Text("OK")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Отмена")
             }
         }
-    )
+    }
 }
-
-//@Composable
-//private fun TimeNumberPicker(
-//    value: Int,
-//    onValueChange: (Int) -> Unit,
-//    range: IntRange
-//) {
-//    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-//        IconButton(
-//            onClick = {
-//                val newValue = if (value >= range.last) range.first else value + 1
-//                onValueChange(newValue)
-//            },
-//            modifier = Modifier.size(48.dp)
-//        ) {
-//            Text("▲", style = MaterialTheme.typography.titleMedium)
-//        }
-//
-//        Text(
-//            text = String.format("%02d", value),
-//            style = MaterialTheme.typography.titleMedium,
-//            modifier = Modifier.padding(vertical = 8.dp)
-//        )
-//
-//        IconButton(
-//            onClick = {
-//                val newValue = if (value <= range.first) range.last else value - 1
-//                onValueChange(newValue)
-//            },
-//            modifier = Modifier.size(48.dp)
-//        ) {
-//            Text("▼", style = MaterialTheme.typography.titleMedium)
-//        }
-//    }
-//}

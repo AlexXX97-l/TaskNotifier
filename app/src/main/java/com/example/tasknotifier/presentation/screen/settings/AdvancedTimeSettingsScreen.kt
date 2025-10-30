@@ -1,6 +1,6 @@
 package com.example.tasknotifier.presentation.screen.settings
 
-import androidx.compose.foundation.clickable
+import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -13,7 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.tasknotifier.domain.model.DayConfiguration
 import com.example.tasknotifier.presentation.component.TimePickerDialog
 import com.example.tasknotifier.presentation.viewmodel.NotificationSettingsViewModel
@@ -24,6 +24,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun AdvancedTimeSettingsScreen(
     onBack: () -> Unit,
+    context: Context,
     viewModel: NotificationSettingsViewModel = hiltViewModel()
 ) {
     val dayConfigurations by viewModel.dayConfigurations.collectAsState()
@@ -38,7 +39,10 @@ fun AdvancedTimeSettingsScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = {
+                        viewModel.saveSettings(context)
+                        onBack()
+                    }) {
                         Icon(Icons.Default.Check, contentDescription = "Сохранить")
                     }
                 }
@@ -125,15 +129,17 @@ private fun DayConfigurationItem(
                     // Начало времени
                     Column(modifier = Modifier.weight(1f)) {
                         Text("С", style = MaterialTheme.typography.labelMedium)
-                        OutlinedTextField(
-                            value = configuration.startTime,
-                            onValueChange = {},
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { showStartTimePicker = true },
-                            readOnly = true,
-                            placeholder = { Text("09:00") }
-                        )
+                        Button(
+                            onClick = { showStartTimePicker = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            ),
+                            border = ButtonDefaults.outlinedButtonBorder
+                        ) {
+                            Text(configuration.startTime, style = MaterialTheme.typography.bodyLarge)
+                        }
                     }
 
                     Text("до", style = MaterialTheme.typography.bodyMedium)
@@ -141,15 +147,17 @@ private fun DayConfigurationItem(
                     // Конец времени
                     Column(modifier = Modifier.weight(1f)) {
                         Text("До", style = MaterialTheme.typography.labelMedium)
-                        OutlinedTextField(
-                            value = configuration.endTime,
-                            onValueChange = {},
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { showEndTimePicker = true },
-                            readOnly = true,
-                            placeholder = { Text("18:00") }
-                        )
+                        Button(
+                            onClick = { showEndTimePicker = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            ),
+                            border = ButtonDefaults.outlinedButtonBorder
+                        ) {
+                            Text(configuration.endTime, style = MaterialTheme.typography.bodyLarge)
+                        }
                     }
                 }
 
