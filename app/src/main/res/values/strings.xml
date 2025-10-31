@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">TaskNotifier</string>
+    <string name="task_list">Список задач</string>
+    <string name="add_task">Добавить задачу</string>
+    <string name="edit_task">Редактировать задачу</string>
+    <string name="task_title">Название задачи</string>
+    <string name="task_description">Описание</string>
+    <string name="priority">Приоритет</string>
+    <string name="high_priority">Высокий</string>
+    <string name="medium_priority">Средний</string>
+    <string name="low_priority">Низкий</string>
+    <string name="save">Сохранить</string>
+    <string name="cancel">Отмена</string>
+    <string name="delete">Удалить</string>
+    <string name="notification_settings">Настройки уведомлений</string>
+    <string name="enable_notifications">Включить уведомления</string>
+    <string name="notification_frequency">Периодичность уведомлений</string>
+    <string name="time_interval">Временной интервал</string>
+    <string name="days_of_week">Дни недели</string>
+</resources>
