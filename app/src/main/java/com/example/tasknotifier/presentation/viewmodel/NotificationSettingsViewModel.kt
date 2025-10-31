@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tasknotifier.data.entities.NotificationSettings
 import com.example.tasknotifier.domain.model.DayConfiguration
-import com.example.tasknotifier.domain.model.NotificationFrequency
 import com.example.tasknotifier.domain.usecase.NotificationUseCases
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

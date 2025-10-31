@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.example.tasknotifier.presentation.component
 
 import androidx.compose.foundation.layout.padding
