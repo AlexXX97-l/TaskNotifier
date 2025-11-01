@@ -80,7 +80,6 @@ class MainActivity : ComponentActivity() {
                     composable("advancedTimeSettings") {
                         AdvancedTimeSettingsScreen(
                             onBack = { navController.popBackStack() },
-                            context = this@MainActivity
                         )
                     }
                 }

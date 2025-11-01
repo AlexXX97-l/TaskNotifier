@@ -7,13 +7,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Done
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -35,27 +33,19 @@ fun NotificationSettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val dayConfigurations by viewModel.dayConfigurations.collectAsState()
-    val context = LocalContext.current
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Настройки уведомлений") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                    IconButton(onClick = {
+                        // Просто выходим без сохранения
+                        onBack()
+                    }) {
+                        Icon(Icons.Outlined.Done, contentDescription = "Назад")
                     }
                 }
-            )
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    viewModel.saveSettings(context)
-                    onBack()
-                },
-                icon = { Icon(Icons.Outlined.Done, contentDescription = "Сохранить") },
-                text = { Text("Сохранить") }
             )
         }
     ) { padding ->
@@ -410,70 +400,3 @@ private fun parseTime(timeString: String): LocalTime {
 private fun getDayName(dayNumber: Int): String {
     return DayOfWeek.entries.find { it.number == dayNumber }?.displayName ?: ""
 }
-
-// Компонент FlowRow
-//@Composable
-//fun FlowRow(
-//    modifier: Modifier = Modifier,
-//    horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
-//    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
-//    content: @Composable () -> Unit
-//) {
-//    Layout(
-//        modifier = modifier,
-//        content = content
-//    ) { measurables, constraints ->
-//        val sequences = mutableListOf<List<Placeable>>()
-//        var currentSequence = mutableListOf<Placeable>()
-//        var currentRowWidth = 0
-//        val maxWidth = constraints.maxWidth
-//
-//        // Группируем элементы по строкам
-//        for (measurable in measurables) {
-//            val placeable = measurable.measure(constraints)
-//            if (currentRowWidth + placeable.width <= maxWidth || currentSequence.isEmpty()) {
-//                currentSequence.add(placeable)
-//                currentRowWidth += placeable.width
-//            } else {
-//                sequences.add(currentSequence)
-//                currentSequence = mutableListOf(placeable)
-//                currentRowWidth = placeable.width
-//            }
-//        }
-//        if (currentSequence.isNotEmpty()) {
-//            sequences.add(currentSequence)
-//        }
-//
-//        val rowHeights = IntArray(sequences.size) { 0 }
-//        val rowWidths = IntArray(sequences.size) { 0 }
-//
-//        // Вычисляем высоты и ширины строк
-//        sequences.forEachIndexed { index, sequence ->
-//            var maxHeight = 0
-//            var totalWidth = 0
-//            sequence.forEach { placeable ->
-//                maxHeight = maxOf(maxHeight, placeable.height)
-//                totalWidth += placeable.width
-//            }
-//            rowHeights[index] = maxHeight
-//            rowWidths[index] = totalWidth
-//        }
-//
-//        val totalHeight = rowHeights.sum() + (rowHeights.size - 1) * 8.dp.roundToPx()
-//        layout(maxWidth, totalHeight) {
-//            var y = 0
-//            sequences.forEachIndexed { index, sequence ->
-//                var x = when (horizontalArrangement) {
-//                    Arrangement.Center -> (maxWidth - rowWidths[index]) / 2
-//                    Arrangement.End -> maxWidth - rowWidths[index]
-//                    else -> 0
-//                }
-//                sequence.forEach { placeable ->
-//                    placeable.placeRelative(x, y)
-//                    x += placeable.width
-//                }
-//                y += rowHeights[index] + 8.dp.roundToPx()
-//            }
-//        }
-//    }
-//}

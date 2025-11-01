@@ -1,11 +1,9 @@
 package com.example.tasknotifier.presentation.screen.settings
 
-import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.material3.HorizontalDivider
@@ -24,7 +22,6 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun AdvancedTimeSettingsScreen(
     onBack: () -> Unit,
-    context: Context,
     viewModel: NotificationSettingsViewModel = hiltViewModel()
 ) {
     val dayConfigurations by viewModel.dayConfigurations.collectAsState()
@@ -34,16 +31,12 @@ fun AdvancedTimeSettingsScreen(
             CenterAlignedTopAppBar(
                 title = { Text("Расширенные настройки времени") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
-                    }
-                },
-                actions = {
                     IconButton(onClick = {
-                        viewModel.saveSettings(context)
+                        // Просто выходим без дополнительного сохранения,
+                        // так как изменения уже сохраняются автоматически
                         onBack()
                     }) {
-                        Icon(Icons.Default.Check, contentDescription = "Сохранить")
+                        Icon(Icons.Default.Check, contentDescription = "Назад")
                     }
                 }
             )

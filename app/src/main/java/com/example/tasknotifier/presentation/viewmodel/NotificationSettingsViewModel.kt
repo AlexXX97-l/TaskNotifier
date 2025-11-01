@@ -25,6 +25,9 @@ class NotificationSettingsViewModel @Inject constructor(
     private val _dayConfigurations = MutableStateFlow<List<DayConfiguration>>(emptyList())
     val dayConfigurations: StateFlow<List<DayConfiguration>> = _dayConfigurations.asStateFlow()
 
+    // Флаг для отслеживания изменений в расширенных настройках
+    private var hasUnsavedAdvancedChanges = false
+
     init {
         loadSettings()
         loadDayConfigurations()
@@ -34,7 +37,6 @@ class NotificationSettingsViewModel @Inject constructor(
         viewModelScope.launch {
             val settings = notificationUseCases.getSettings()
             if (settings != null) {
-                // ИСПРАВЛЕНИЕ: Добавлена проверка на пустые строки при разборе daysOfWeek
                 val daysList = if (settings.daysOfWeek.isNotEmpty()) {
                     settings.daysOfWeek.split(",")
                         .mapNotNull { dayString ->
@@ -50,7 +52,7 @@ class NotificationSettingsViewModel @Inject constructor(
                     enabled = settings.enabled,
                     startTime = settings.startTime ?: "09:00",
                     endTime = settings.endTime ?: "18:00",
-                    selectedDays = daysList, // Используем обработанный список
+                    selectedDays = daysList,
                     useAdvancedSettings = settings.useAdvancedSettings
                 )
 
@@ -76,6 +78,7 @@ class NotificationSettingsViewModel @Inject constructor(
         viewModelScope.launch {
             val configurations = notificationUseCases.getDayConfigurations()
             _dayConfigurations.value = configurations
+            hasUnsavedAdvancedChanges = false
         }
     }
 
@@ -88,12 +91,10 @@ class NotificationSettingsViewModel @Inject constructor(
     }
 
     fun updateStartTime(time: String) {
-        println("ViewModel: updateStartTime called with $time")
         _uiState.value = _uiState.value.copy(startTime = time)
     }
 
     fun updateEndTime(time: String) {
-        println("ViewModel: updateEndTime called with $time")
         _uiState.value = _uiState.value.copy(endTime = time)
     }
 
@@ -121,7 +122,12 @@ class NotificationSettingsViewModel @Inject constructor(
             if (index != -1) {
                 currentConfigs[index] = updatedConfig
                 _dayConfigurations.value = currentConfigs
+                hasUnsavedAdvancedChanges = true
+
+                // Автоматически сохраняем изменения в расширенных настройках
                 notificationUseCases.saveDayConfigurations(currentConfigs)
+
+                // Синхронизируем с основными настройками
                 syncWithBasicSettings(currentConfigs)
             }
         }
@@ -137,10 +143,11 @@ class NotificationSettingsViewModel @Inject constructor(
             selectedDays = enabledDays
         )
     }
+
+    // Сохранение всех настроек
     fun saveSettings(context: Context) {
         viewModelScope.launch {
             val state = _uiState.value
-            // Убедимся, что selectedDays не содержит null или недопустимых значений
             val validDays = state.selectedDays.filter { it in 1..7 }
 
             val settings = state.settings.copy(
@@ -151,9 +158,26 @@ class NotificationSettingsViewModel @Inject constructor(
                 daysOfWeek = if (state.enabled && !state.useAdvancedSettings) validDays.joinToString(",") else "",
                 useAdvancedSettings = state.useAdvancedSettings
             )
+
             notificationUseCases.saveSettings(settings)
 
             NotificationReceiver.sendUpdateScheduleBroadcast(context)
         }
+    }
+
+    // Принудительное сохранение расширенных настроек
+    suspend fun saveAdvancedSettingsImmediately() {
+        notificationUseCases.saveDayConfigurations(_dayConfigurations.value)
+        hasUnsavedAdvancedChanges = false
+    }
+
+    // Проверка наличия несохраненных изменений
+    fun hasUnsavedChanges(): Boolean {
+        return hasUnsavedAdvancedChanges
+    }
+
+    // Сброс флага изменений
+    fun resetUnsavedChanges() {
+        hasUnsavedAdvancedChanges = false
     }
 }
