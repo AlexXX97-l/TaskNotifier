@@ -47,7 +47,7 @@ object TaskNotificationService {
         val lowPriorityTasks = tasks.count { it.priority == "LOW" }
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_tn_notification)
             .setContentTitle("Текущие задачи")
             .setContentText("У вас ${tasks.size} активных задач")
             .setStyle(

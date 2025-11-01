@@ -7,11 +7,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Done
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -33,6 +35,7 @@ fun NotificationSettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val dayConfigurations by viewModel.dayConfigurations.collectAsState()
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -40,12 +43,23 @@ fun NotificationSettingsScreen(
                 title = { Text("Настройки уведомлений") },
                 navigationIcon = {
                     IconButton(onClick = {
-                        // Просто выходим без сохранения
+                        // Сохраняет только расширенные настройки
                         onBack()
                     }) {
-                        Icon(Icons.Outlined.Done, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
                     }
                 }
+            )
+        },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = {
+                    // Сохраняет только основные настройки
+                    viewModel.saveSettings(context)
+                    onBack()
+                },
+                icon = { Icon(Icons.Outlined.Done, contentDescription = "Сохранить") },
+                text = { Text("Сохранить настройки") }
             )
         }
     ) { padding ->
