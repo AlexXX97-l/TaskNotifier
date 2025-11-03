@@ -25,6 +25,7 @@ import com.example.tasknotifier.presentation.viewmodel.NotificationSettingsViewM
 import com.example.tasknotifier.presentation.viewmodel.NotificationSettingsUiState
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,13 +38,31 @@ fun NotificationSettingsScreen(
     val dayConfigurations by viewModel.dayConfigurations.collectAsState()
     val context = LocalContext.current
 
+    // SnackbarHostState + сбор событий
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is NotificationSettingsViewModel.UiEvent.SettingsSaved -> {
+                    snackbarHostState.showSnackbar("Настройки сохранены")
+                    // Авто-возврат назад после показа — при желании можно убрать delay или сам возврат
+                    scope.launch {
+                        onBack()
+                    }
+                }
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Настройки уведомлений") },
                 navigationIcon = {
                     IconButton(onClick = {
-                        // Сохраняет только расширенные настройки
+                        // Возврат без дополнительного сохранения (расширенные уже авто-сохраняются)
                         onBack()
                     }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
@@ -54,14 +73,14 @@ fun NotificationSettingsScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
-                    // Сохраняет только основные настройки
+                    // Сохраняем настройки; навигация назад произойдет из обработчика события
                     viewModel.saveSettings(context)
-                    onBack()
                 },
                 icon = { Icon(Icons.Outlined.Done, contentDescription = "Сохранить") },
                 text = { Text("Сохранить настройки") }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -99,17 +118,14 @@ fun NotificationSettingsScreen(
                 }
 
                 if (uiState.useAdvancedSettings) {
-                    // РАСШИРЕННЫЕ НАСТРОЙКИ
                     AdvancedSettingsSection(
                         dayConfigurations = dayConfigurations,
                         onConfigureClick = { navController.navigate("advancedTimeSettings") }
                     )
                 } else {
-                    // БАЗОВЫЕ НАСТРОЙКИ
                     BasicSettingsSection(uiState = uiState, viewModel = viewModel)
                 }
 
-                // Периодичность (общая для обоих режимов)
                 FrequencySection(uiState = uiState, viewModel = viewModel)
             }
         }
@@ -144,7 +160,6 @@ private fun BasicSettingsSection(
     viewModel: NotificationSettingsViewModel
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
-        // Временной интервал
         Text("Временной интервал для уведомлений", style = MaterialTheme.typography.titleSmall)
         TimeIntervalSection(
             startTime = uiState.startTime,
@@ -153,7 +168,6 @@ private fun BasicSettingsSection(
             onEndTimeChange = viewModel::updateEndTime
         )
 
-        // Дни недели
         Text("Дни недели для уведомлений", style = MaterialTheme.typography.titleSmall)
         DaysOfWeekSection(
             selectedDays = uiState.selectedDays,
@@ -178,7 +192,6 @@ private fun FrequencySection(
                 NotificationFrequency.EVERY_6_HOURS -> "Каждые 6 часов"
                 NotificationFrequency.EVERY_9_HOURS -> "Каждые 9 часов"
             }
-
             RadioButtonItem(
                 text = displayName,
                 selected = uiState.frequency == frequency.name,
@@ -251,7 +264,6 @@ private fun TimeIntervalSection(
             style = MaterialTheme.typography.bodyMedium
         )
 
-        // Используем простые кнопки вместо TextField
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -291,7 +303,6 @@ private fun TimeIntervalSection(
             }
         }
 
-        // TimePicker диалоги
         if (showStartTimePicker) {
             TimePickerDialog(
                 initialTime = parseTime(startTime),
@@ -329,7 +340,6 @@ private fun DaysOfWeekSection(
             style = MaterialTheme.typography.bodyMedium
         )
 
-        // Заменяем FlowRow на Column с Rows для переноса
         DaysOfWeekFlowRow(
             selectedDays = selectedDays,
             onDayToggle = onDayToggle
@@ -350,7 +360,7 @@ private fun DaysOfWeekFlowRow(
     selectedDays: List<Int>,
     onDayToggle: (Int) -> Unit
 ) {
-    val days = DayOfWeek.entries.chunked(4) // Разбиваем на группы по 4 дня
+    val days = DayOfWeek.entries.chunked(4)
 
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -368,7 +378,6 @@ private fun DaysOfWeekFlowRow(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                // Добавляем невидимые чипы для выравнивания, если в строке меньше 4 элементов
                 repeat(4 - rowDays.size) {
                     Spacer(modifier = Modifier.weight(1f))
                 }
@@ -401,13 +410,12 @@ private fun RadioButtonItem(
     }
 }
 
-// Вспомогательные функции
 private fun parseTime(timeString: String): LocalTime {
     return try {
         LocalTime.parse(timeString, DateTimeFormatter.ofPattern("HH:mm"))
     } catch (e: Exception) {
         println("Error parsing time '$timeString': ${e.message}")
-        LocalTime.of(9, 0) // значение по умолчанию
+        LocalTime.of(9, 0)
     }
 }
 

@@ -1,18 +1,20 @@
 package com.example.tasknotifier.presentation.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tasknotifier.data.entities.NotificationSettings
 import com.example.tasknotifier.domain.model.DayConfiguration
 import com.example.tasknotifier.domain.usecase.NotificationUseCases
+import com.example.tasknotifier.service.notification.NotificationReceiver
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import android.content.Context
-import com.example.tasknotifier.service.notification.NotificationReceiver
 import javax.inject.Inject
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 
 @HiltViewModel
 class NotificationSettingsViewModel @Inject constructor(
@@ -24,6 +26,13 @@ class NotificationSettingsViewModel @Inject constructor(
 
     private val _dayConfigurations = MutableStateFlow<List<DayConfiguration>>(emptyList())
     val dayConfigurations: StateFlow<List<DayConfiguration>> = _dayConfigurations.asStateFlow()
+
+    // UI события (одноразовые)
+    sealed interface UiEvent {
+        data object SettingsSaved : UiEvent
+    }
+    private val _events = Channel<UiEvent>(Channel.BUFFERED)
+    val events = _events.receiveAsFlow()
 
     // Флаг для отслеживания изменений в расширенных настройках
     private var hasUnsavedAdvancedChanges = false
@@ -58,17 +67,8 @@ class NotificationSettingsViewModel @Inject constructor(
 
                 loadDayConfigurations()
             } else {
-                val defaultSettings = NotificationSettings()
-                notificationUseCases.saveSettings(defaultSettings)
                 _uiState.value = _uiState.value.copy(
-                    settings = defaultSettings,
-                    frequency = defaultSettings.frequency,
-                    enabled = defaultSettings.enabled,
-                    startTime = defaultSettings.startTime ?: "09:00",
-                    endTime = defaultSettings.endTime ?: "18:00",
-                    selectedDays = defaultSettings.daysOfWeek.split(",")
-                        .mapNotNull { it.trim().takeIf { str -> str.isNotEmpty() }?.toIntOrNull() },
-                    useAdvancedSettings = defaultSettings.useAdvancedSettings
+                    settings = NotificationSettings()
                 )
             }
         }
@@ -76,9 +76,8 @@ class NotificationSettingsViewModel @Inject constructor(
 
     private fun loadDayConfigurations() {
         viewModelScope.launch {
-            val configurations = notificationUseCases.getDayConfigurations()
-            _dayConfigurations.value = configurations
-            hasUnsavedAdvancedChanges = false
+            val configs = notificationUseCases.getDayConfigurations()
+            _dayConfigurations.value = configs
         }
     }
 
@@ -112,6 +111,9 @@ class NotificationSettingsViewModel @Inject constructor(
         viewModelScope.launch {
             notificationUseCases.toggleAdvancedSettings(useAdvanced)
             _uiState.value = _uiState.value.copy(useAdvancedSettings = useAdvanced)
+            if (useAdvanced && _dayConfigurations.value.isEmpty()) {
+                loadDayConfigurations()
+            }
         }
     }
 
@@ -124,11 +126,15 @@ class NotificationSettingsViewModel @Inject constructor(
                 _dayConfigurations.value = currentConfigs
                 hasUnsavedAdvancedChanges = true
 
-                // Автоматически сохраняем изменения в расширенных настройках
                 notificationUseCases.saveDayConfigurations(currentConfigs)
 
-                // Синхронизируем с основными настройками
+                val refreshed = notificationUseCases.getSettings()
+                if (refreshed != null) {
+                    _uiState.value = _uiState.value.copy(settings = refreshed)
+                }
+
                 syncWithBasicSettings(currentConfigs)
+                hasUnsavedAdvancedChanges = false
             }
         }
     }
@@ -138,46 +144,41 @@ class NotificationSettingsViewModel @Inject constructor(
             .filter { it.enabled }
             .map { it.dayOfWeek }
             .sorted()
-
-        _uiState.value = _uiState.value.copy(
-            selectedDays = enabledDays
-        )
+        _uiState.value = _uiState.value.copy(selectedDays = enabledDays)
     }
 
-    // Сохранение всех настроек
     fun saveSettings(context: Context) {
         viewModelScope.launch {
             val state = _uiState.value
             val validDays = state.selectedDays.filter { it in 1..7 }
 
-            val settings = state.settings.copy(
+            val freshFromDb = notificationUseCases.getSettings()
+            val daysConfigurationJson = if (state.useAdvancedSettings) {
+                freshFromDb?.daysConfiguration ?: state.settings.daysConfiguration
+            } else {
+                ""
+            }
+
+            val base = freshFromDb ?: state.settings
+
+            val settingsToSave = base.copy(
                 frequency = state.frequency,
                 enabled = state.enabled,
                 startTime = if (state.enabled && !state.useAdvancedSettings) state.startTime else null,
                 endTime = if (state.enabled && !state.useAdvancedSettings) state.endTime else null,
                 daysOfWeek = if (state.enabled && !state.useAdvancedSettings) validDays.joinToString(",") else "",
+                daysConfiguration = daysConfigurationJson,
                 useAdvancedSettings = state.useAdvancedSettings
             )
 
-            notificationUseCases.saveSettings(settings)
+            notificationUseCases.saveSettings(settingsToSave)
+            _uiState.value = _uiState.value.copy(settings = settingsToSave)
+            hasUnsavedAdvancedChanges = false
 
             NotificationReceiver.sendUpdateScheduleBroadcast(context)
+
+            // Отправляем событие для UI
+            _events.trySend(UiEvent.SettingsSaved)
         }
-    }
-
-    // Принудительное сохранение расширенных настроек
-    suspend fun saveAdvancedSettingsImmediately() {
-        notificationUseCases.saveDayConfigurations(_dayConfigurations.value)
-        hasUnsavedAdvancedChanges = false
-    }
-
-    // Проверка наличия несохраненных изменений
-    fun hasUnsavedChanges(): Boolean {
-        return hasUnsavedAdvancedChanges
-    }
-
-    // Сброс флага изменений
-    fun resetUnsavedChanges() {
-        hasUnsavedAdvancedChanges = false
     }
 }
